@@ -2,6 +2,7 @@ import SwiftUI
 import WebKit
 import MapKit
 import CoreLocation
+import Combine
 
 //MARK: - WebViewの定義
 struct WebView: UIViewRepresentable {
@@ -163,53 +164,39 @@ struct WebView: UIViewRepresentable {
 struct WebViewContainer: View {
     @EnvironmentObject var usedata: UserSettings
     public var webView = WebView()
-    @State private var proximityTimer: Timer? // タイマー管理用の State 変数
-
+    @State private var timerCancellable: AnyCancellable?
+    
     var body: some View {
         self.webView
             .edgesIgnoringSafeArea(.all)
-            .fullScreenCover(isPresented: $usedata.isVideoPlayerPresented) {
-                if let videoURL = usedata.selectedVideoURL {
-                    VideoPlayerView(videoURL: videoURL)
-                } else {
-                    Text("動画が見つかりませんでした")
-                }
-            }
             .onAppear {
                 DebugLogger.shared.log("🟢 WebViewContainer が表示されました", level: "INFO")
-                usedata.locationManager.startUpdatingLocation()
-                // 更新処理は isUpdateGps が true の場合にのみ実行
-                if usedata.isUpdateGps {
-                    usedata.getClosestLocation()
-                }
+                startProximityCheck()
             }
             .onDisappear {
-                stopProximityCheck() // 画面が閉じたらタイマーを停止
-            }
-            .onChange(of: usedata.isUpdateGps) { oldValue, newValue in
-                if newValue {
-                    DebugLogger.shared.log("🟢 位置情報の更新が開始されたため、10秒ごとの処理を開始", level: "INFO")
-                    startProximityCheck()
-                } else {
-                    DebugLogger.shared.log("🛑 位置情報の更新が停止されたため、10秒ごとの処理を停止", level: "INFO")
-                    stopProximityCheck()
-                }
+                stopProximityCheck()
             }
     }
 
-    /// 10秒ごとに処理を実行
     private func startProximityCheck() {
         stopProximityCheck() // 既存のタイマーがある場合は停止してから新規作成
-        proximityTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
-            DebugLogger.shared.log("⏳ 10秒ごとの処理を実行", level: "INFO")
-            usedata.getClosestLocation() // ここに実行したい処理を記述
-        }
+        
+        timerCancellable = Timer.publish(every: 5.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { _ in
+                DebugLogger.shared.log("⏳ 5秒ごとの処理を実行", level: "INFO")
+                
+                // 位置情報の更新を実行
+                usedata.locationManager.startUpdatingLocation()
+                
+                // 位置情報に基づく処理を実行
+                usedata.getClosestLocation()
+            }
     }
 
-    /// タイマーを停止
     private func stopProximityCheck() {
-        proximityTimer?.invalidate()
-        proximityTimer = nil
+        timerCancellable?.cancel()
+        timerCancellable = nil
         DebugLogger.shared.log("🛑 タイマーが停止されました", level: "INFO")
     }
 }

@@ -110,7 +110,19 @@ class UserSettings: ObservableObject {
     @Published var showToast: Bool = false
     
 
-    @Published var locations: [(latitude: String,longitude: String,data_id:Int, moviesName_ja: String, moviesName_en: String, radius: String, description_ja: String, description_en: String,looked_flg : Bool)] = []
+    @Published var locations: [(latitude: String,longitude: String,data_id:Int, moviesName_ja: String, moviesName_en: String, radius: String, description_ja: String, description_en: String,looked_flg : Bool)] = [
+        (
+            latitude: "34.37266037045911",
+            longitude: "132.4500198261288",
+            data_id: 1,
+            moviesName_ja: "福祉キャリア.mp4",
+            moviesName_en: "FukushiCareer.mp4",
+            radius: "100",
+            description_ja: "福祉キャリアの説明",
+            description_en: "Description of Fukushi Career",
+            looked_flg: false
+        )
+    ]
 
 
     @Published var appFolderPath: URL?
