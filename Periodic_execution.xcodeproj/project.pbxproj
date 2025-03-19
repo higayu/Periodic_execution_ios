@@ -29,9 +29,38 @@
 		C0A6E14D2D8A710100D84D4B /* Periodic_executionUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Periodic_executionUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C0A6E17A2D8A726300D84D4B /* Exceptions for "Periodic_execution" folder in "Periodic_executionTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				DebugLogger.swift,
+				FileManagerHelper.swift,
+				LocationManager.swift,
+				VideoPlayerView.swift,
+				WebView.swift,
+			);
+			target = C0A6E1422D8A710100D84D4B /* Periodic_executionTests */;
+		};
+		C0A6E17B2D8A726300D84D4B /* Exceptions for "Periodic_execution" folder in "Periodic_executionUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				DebugLogger.swift,
+				FileManagerHelper.swift,
+				LocationManager.swift,
+				VideoPlayerView.swift,
+				WebView.swift,
+			);
+			target = C0A6E14C2D8A710100D84D4B /* Periodic_executionUITests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C0A6E1342D8A710000D84D4B /* Periodic_execution */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C0A6E17A2D8A726300D84D4B /* Exceptions for "Periodic_execution" folder in "Periodic_executionTests" target */,
+				C0A6E17B2D8A726300D84D4B /* Exceptions for "Periodic_execution" folder in "Periodic_executionUITests" target */,
+			);
 			path = Periodic_execution;
 			sourceTree = "<group>";
 		};
