@@ -33,8 +33,12 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.requestWhenInUseAuthorization() // `requestAlwaysAuthorization()` から変更（最初は `whenInUse`）
+        
+        // プレビュー実行中かどうかを確認し、バックグラウンド更新を制限
+        #if !DEBUG
         manager.allowsBackgroundLocationUpdates = true
         manager.pausesLocationUpdatesAutomatically = false
+        #endif
     }
     
     /// 📍 位置情報の取得を開始

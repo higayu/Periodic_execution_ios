@@ -152,13 +152,27 @@ class UserSettings: ObservableObject {
     
     init() {
         // Initialize properties that need to be set before didSet is triggered
-        self.select_lang = UserDefaults.standard.string(forKey: Keys.selectLang) ?? "ja" // Default to Japanese
-        self.FakeMode = UserDefaults.standard.bool(forKey: Keys.fakeMode)
-        self.locationManager = LocationManager()
-        
-        // UserDefaultsから初期値を読み込む
         let defaults = UserDefaults.standard
+        self.select_lang = defaults.string(forKey: Keys.selectLang) ?? "ja" // Default to Japanese
+        self.FakeMode = defaults.bool(forKey: Keys.fakeMode)
         self.isUpdateGps = defaults.bool(forKey: Keys.isUpdateGps)
+        
+        // プレビュー環境かどうかを検出
+        #if targetEnvironment(simulator) && DEBUG
+        // シミュレータ上のデバッグモード（プレビュー含む）では安全な初期化
+        self.locationManager = LocationManager()
+        // プレビュー環境では位置情報更新をデフォルトで無効に
+        self.isUpdateGps = false
+        #else
+        // 実機または本番環境では通常の初期化
+        self.locationManager = LocationManager()
+        #endif
+        
+        // アプリ起動時のデバッグメッセージ
+        DebugLogger.shared.log("🟢 UserSettings を初期化しました", level: "INFO")
+        
+        // アプリフォルダとログフォルダのパスを取得
+        self.fetchAppFolderPath()
     }
 
     
@@ -203,7 +217,19 @@ class UserSettings: ObservableObject {
     
     //MARK: - 近くにある動画の取得
     func getClosestLocation() {
-            guard let currentLocation =  self.locationManager.location else { return }
+            guard let locationManager = self.locationManager, 
+                  let currentLocation = locationManager.location else {
+                debugMessage = "📍 位置情報が取得できていません"
+                DebugLogger.shared.log("⚠️ 位置情報が取得できていないため、getClosestLocation 処理をスキップします", level: "WARNING")
+                return
+            }
+
+            // 位置情報リストが空の場合はエラーメッセージを表示して早期リターン
+            if self.locations.isEmpty {
+                debugMessage = "📍 登録されている位置情報がありません"
+                DebugLogger.shared.log("⚠️ 登録されている位置情報がありません", level: "WARNING")
+                return
+            }
 
             var closestLocation: CLLocation?
             var closestName_ja: String = "なし"
@@ -233,7 +259,6 @@ class UserSettings: ObservableObject {
             if let index = closestIndex, let _ = closestLocation {
                 let closestCoordinate = self.locations[index]
                 
-                
                 closestMovieName_ja = closestName_ja
                 closestMovieName_en = closestName_en
                 closestDistance = minDistance
@@ -248,36 +273,45 @@ class UserSettings: ObservableObject {
                         // 既に視聴済みかチェック
                         if closestCoordinate.looked_flg {
                             debugMessage = "✅ 既に視聴済みのためスキップ: \(closestName_ja)"
-                            print(debugMessage)
+                            DebugLogger.shared.log(debugMessage, level: "INFO")
                             return
                         }
                     
                     // 追加: 再生条件を満たすかチェック
                     if closestCoordinate.data_id != 1 && !self.areAllMoviesLookedUpTo(maxId: closestCoordinate.data_id - 1) {
                         debugMessage = "❌ 前の動画が未視聴のためスキップ: \(closestName_ja)"
-                        print(debugMessage)
+                        DebugLogger.shared.log(debugMessage, level: "INFO")
                         return
                     }
                     
                     if let videoURL = getVideoURL(fileName: closestMovieName) {
                         debugMessage = "✅ 動画が見つかりました: \(closestMovieName_ja)"
-                        print(debugMessage)
-                        selectedVideoURL = videoURL
-                        isVideoPlayerPresented = true
-                        //firebaseに視聴したフラグを更新処理
+                        DebugLogger.shared.log(debugMessage, level: "INFO")
                         
-                        // ✅ 動画視聴確定時に `looked_flg` を `true` に更新
-                        self.locations[index].looked_flg = true
-                        
+                        // メインスレッドでUI更新処理を行う
+                        DispatchQueue.main.async {
+                            self.selectedVideoURL = videoURL
+                            self.isVideoPlayerPresented = true
+                            //firebaseに視聴したフラグを更新処理
+                            
+                            // ✅ 動画視聴確定時に `looked_flg` を `true` に更新
+                            if index < self.locations.count {
+                                self.locations[index].looked_flg = true
+                            }
+                        }
                                   
                     } else {
                         debugMessage = "❌ 動画が見つかりません: \(closestMovieName_ja)"
-                        print(debugMessage)
-                        showToast = true
+                        DebugLogger.shared.log(debugMessage, level: "WARNING")
+                        DispatchQueue.main.async {
+                            self.showToast = true
+                        }
                     }
                 } else {
                     debugMessage = "📍 まだ目的地まで遠い（距離: \(String(format: "%.2f", minDistance)) m, 許容範囲: \(String(format: "%.2f", closestRadius)) m）"
                 }
+            } else {
+                debugMessage = "📍 近くに動画スポットが見つかりません"
             }
         }
     

@@ -175,29 +175,44 @@ struct WebViewContainer: View {
             }
             .onDisappear {
                 stopProximityCheck()
+                DebugLogger.shared.log("🔴 WebViewContainer が非表示になりました", level: "INFO")
+            }
+            .fullScreenCover(isPresented: $usedata.isVideoPlayerPresented) {
+                if let videoURL = usedata.selectedVideoURL {
+                    VideoPlayerView(videoURL: videoURL)
+                } else {
+                    Text("動画が見つかりませんでした")
+                }
             }
     }
 
     private func startProximityCheck() {
-        stopProximityCheck() // 既存のタイマーがある場合は停止してから新規作成
+        // 既存のタイマーがある場合は必ず停止してから新規作成
+        stopProximityCheck()
         
-        timerCancellable = Timer.publish(every: 5.0, on: .main, in: .common)
-            .autoconnect()
-            .sink { _ in
-                DebugLogger.shared.log("⏳ 5秒ごとの処理を実行", level: "INFO")
-                
-                // 位置情報の更新を実行
-                usedata.locationManager.startUpdatingLocation()
-                
-                // 位置情報に基づく処理を実行
-                usedata.getClosestLocation()
-            }
+        // 安全にタイマーを作成
+        DispatchQueue.main.async {
+            self.timerCancellable = Timer.publish(every: 5.0, on: .main, in: .common)
+                .autoconnect()
+                .sink { _ in
+                    DebugLogger.shared.log("⏳ 5秒ごとの処理を実行", level: "INFO")
+                    
+                    // 位置情報の更新を実行
+                    self.usedata.locationManager.startUpdatingLocation()
+                    
+                    // 位置情報に基づく処理を実行
+                    self.usedata.getClosestLocation()
+                }
+        }
     }
 
     private func stopProximityCheck() {
-        timerCancellable?.cancel()
-        timerCancellable = nil
-        DebugLogger.shared.log("🛑 タイマーが停止されました", level: "INFO")
+        // メインスレッドでタイマーを停止
+        DispatchQueue.main.async {
+            self.timerCancellable?.cancel()
+            self.timerCancellable = nil
+            DebugLogger.shared.log("🛑 タイマーが停止されました", level: "INFO")
+        }
     }
 }
 
